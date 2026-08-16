@@ -3,6 +3,8 @@ from sqlalchemy import create_engine
 from sqlalchemy import pool
 from app.db.database import Base
 from app.models.processed.candles import ProcessedCandle
+from app.models.raw.candles import RawCandle
+from app.models.raw.ingestion_runs import IngestionRun
 from app.core.config import DATABASE_URL
 from alembic import context
 
@@ -28,7 +30,7 @@ target_metadata = Base.metadata
 
 def include_name(name, type_, parent_names):
     if type_ == "schema":
-        return name in {"processed", "public"}
+        return name in {"raw", "processed", "public"}
 
     return True
 def run_migrations_offline() -> None:
