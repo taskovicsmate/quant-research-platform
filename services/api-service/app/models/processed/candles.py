@@ -7,6 +7,7 @@ from datetime import datetime
 from sqlalchemy import DateTime
 from sqlalchemy import CheckConstraint, UniqueConstraint
 from app.db.database import Base
+from sqlalchemy import ForeignKey
 
 class ProcessedCandle(Base):
     __tablename__ = "candles"
@@ -21,6 +22,7 @@ class ProcessedCandle(Base):
         CheckConstraint("processed_at >= open_time", name="check_processed_at_open_time"),
         CheckConstraint("processed_at >= close_time", name="check_processed_at_close_time"),
         UniqueConstraint("exchange", "symbol", "timeframe", "open_time", name="unique_candle_constraint"),
+        UniqueConstraint("source_raw_candle_id", name="uq_processed_candles_source_raw_candle"),
         {
             "schema": "processed"
         }
@@ -29,6 +31,8 @@ class ProcessedCandle(Base):
 
 
     id: Mapped[int] = mapped_column(primary_key=True)
+
+    source_raw_candle_id: Mapped[int] = mapped_column(ForeignKey("raw.candles.id",name="fk_processed_candles_source_raw_candle",ondelete="RESTRICT",))
 
     exchange: Mapped[str] = mapped_column(String(20))
 
