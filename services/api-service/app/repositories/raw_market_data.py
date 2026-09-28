@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
-
+from sqlalchemy import select
 from app.models.raw.candles import RawCandle
 from app.models.raw.ingestion_runs import IngestionRun
 
@@ -26,6 +26,18 @@ class RawMarketDataRepository:
         session.flush()
 
         return run
+
+    def get_ingestion_run( self, session: Session,*,run_id: int,) -> IngestionRun | None:
+        return session.get(IngestionRun, run_id)
+    
+    def get_candles_for_run(self,session: Session,*, ingestion_run_id: int,) -> Sequence[RawCandle]:
+        statement = (
+            select(RawCandle)
+            .where(RawCandle.ingestion_run_id == ingestion_run_id)
+            .order_by(RawCandle.source_row_number.asc())
+        )
+
+        return session.scalars(statement).all()
 
     def add_candles(self,session: Session,candles: Sequence[RawCandle],) -> None:
         session.add_all(candles)
