@@ -147,7 +147,7 @@ class RawToProcessedService:
 
         return ProcessedCandle(
             source_raw_candle_id=raw_candle.id,
-            exchange=raw_candle.exchange,
+            exchange= raw_candle.exchange,
             symbol=raw_candle.symbol,
             timeframe=raw_candle.timeframe,
             open_time=raw_candle.open_time,
@@ -158,7 +158,7 @@ class RawToProcessedService:
             close=close_price,
             volume=volume,
             processed_at=processed_at,
-        )
+            )
 
     @staticmethod
     def _to_decimal(value: Any,*,field_name: str,raw_candle_id: int,) -> Decimal:
