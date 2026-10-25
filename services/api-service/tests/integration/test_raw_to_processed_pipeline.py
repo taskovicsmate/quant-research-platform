@@ -1,15 +1,18 @@
 from datetime import datetime, timezone
+from decimal import Decimal
 from typing import Any
 
 import pytest
 from sqlalchemy import select
 
 from app.db.database import SessionLocal
+from app.models.features.indicator_values import IndicatorValue
 from app.models.processed.candles import ProcessedCandle
 from app.models.raw.candles import RawCandle
 from app.models.raw.ingestion_runs import IngestionRun
 from app.services.raw_ingestion import RawIngestionService
 from app.services.raw_to_processed import RawToProcessedService
+from app.services.simple_moving_average import SimpleMovingAverageService
 
 
 START_TIME = datetime(2025, 1, 1, tzinfo=timezone.utc)
@@ -110,6 +113,24 @@ def test_raw_to_processed_pipeline_persists_and_is_idempotent(
         candle.source_raw_candle_id for candle in processed_candles
     } == {candle.id for candle in raw_candles}
 
+    feature_session = SessionLocal()
+
+    try:
+        first_sma_result = SimpleMovingAverageService().calculate_for_market(
+            feature_session,
+            exchange="binance",
+            symbol="BTCUSDT",
+            timeframe="1h",
+            window=2,
+        )
+    finally:
+        feature_session.close()
+
+    assert first_sma_result.processed_candle_count == 2
+    assert first_sma_result.calculated_value_count == 1
+    assert first_sma_result.inserted_value_count == 1
+    assert first_sma_result.skipped_value_count == 0
+
     retry_session = SessionLocal()
 
     try:
@@ -123,3 +144,34 @@ def test_raw_to_processed_pipeline_persists_and_is_idempotent(
     assert retry_result.raw_candle_count == 2
     assert retry_result.inserted_candle_count == 0
     assert retry_result.skipped_candle_count == 2
+
+    retry_feature_session = SessionLocal()
+
+    try:
+        retry_sma_result = SimpleMovingAverageService().calculate_for_market(
+            retry_feature_session,
+            exchange="binance",
+            symbol="BTCUSDT",
+            timeframe="1h",
+            window=2,
+        )
+    finally:
+        retry_feature_session.close()
+
+    assert retry_sma_result.calculated_value_count == 1
+    assert retry_sma_result.inserted_value_count == 0
+    assert retry_sma_result.skipped_value_count == 1
+
+    feature_verification_session = SessionLocal()
+
+    try:
+        indicator_values = feature_verification_session.scalars(
+            select(IndicatorValue)
+        ).all()
+    finally:
+        feature_verification_session.close()
+
+    assert len(indicator_values) == 1
+    assert indicator_values[0].indicator_name == "sma"
+    assert indicator_values[0].parameter_signature == "window=2"
+    assert indicator_values[0].value == Decimal("107.500000000000")

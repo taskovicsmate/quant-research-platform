@@ -34,8 +34,8 @@ def _truncate_test_data(engine: Engine) -> None:
     with engine.begin() as connection:
         connection.execute(
             text(
-                "TRUNCATE TABLE processed.candles, raw.candles, "
-                "raw.ingestion_runs RESTART IDENTITY"
+                "TRUNCATE TABLE features.indicator_values, processed.candles, "
+                "raw.candles, raw.ingestion_runs RESTART IDENTITY"
             )
         )
 
