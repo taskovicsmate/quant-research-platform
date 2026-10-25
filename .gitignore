@@ -27,3 +27,8 @@ venv/
 # OS
 .DS_Store
 Thumbs.db
+
+#tests
+manualtest.py
+manual_test_raw_to_processed_workflow.py
+manual_test_processed_repository.py
